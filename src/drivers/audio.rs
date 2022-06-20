@@ -1,7 +1,4 @@
-use std::{
-    error::Error,
-    time::Duration,
-};
+use std::error::Error;
 use sdl2::{
     audio::{
         AudioCallback,
@@ -21,7 +18,7 @@ impl AudioCallback for SquareWave {
     type Channel = f32;
 
     fn callback(&mut self, out: &mut [f32]) {
-        //Generate a square wave
+        // Generate a square wave
         for x in out.iter_mut() {
             if self.phase <= 0.5 {
                 *x = self.volume;
@@ -59,10 +56,12 @@ impl AudioDriver {
         Ok(AudioDriver{ device, state: false })
     }
 
+    /// Sets the audio output to ON, lasting until turned OFF.
     pub fn on(&mut self) {
         self.device.resume();
     }
 
+    /// Sets the audio output OFF.
     pub fn off(&mut self) {
         self.device.pause();
     }

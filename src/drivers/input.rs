@@ -18,8 +18,8 @@ impl InputDriver {
         Ok( InputDriver { events } )
     }
 
-    /// Polls the sdl eventpump for events. Sets the keypad to the proper state.
-    /// Returns Err if any Quit event is polled.
+    /// Polls the sdl eventpump for events, 
+    /// then sets the keypad to the proper state.
     pub fn set_keypad(&mut self, keypad: &mut Keypad) -> Result<(), Box<dyn Error>> {
 
         for event in self.events.poll_iter() {
@@ -47,8 +47,7 @@ impl InputDriver {
     }
 }
 
-/// Match keycode to chip-8 keypad idx. If keycode does not correspond
-/// to any valid keypad idx, returns None instead.
+/// Match keycode to chip-8 keypad idx.
 fn keycode_to_idx(key: Keycode) -> Option<usize> {
     match key {
         Keycode::Num1 => Some(0x1),

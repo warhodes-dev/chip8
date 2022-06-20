@@ -6,7 +6,7 @@ use sdl2::{
     pixels::Color,
 };
 use crate::emu::frame::{
-    FrameBuffer,
+    FrameBuf,
     FB_SIZE,
 };
 
@@ -40,7 +40,8 @@ impl VideoDriver {
         Ok( VideoDriver{ canvas } )
     }
 
-    pub fn draw(&mut self, fb: &FrameBuffer) -> Result<(), Box<dyn Error>> {
+    /// Update the sdl window to correspond to the framebuffer
+    pub fn draw(&mut self, fb: &FrameBuf) -> Result<(), Box<dyn Error>> {
 
         for (x, row) in fb.iter().enumerate() {
             for (y, pixel) in row.iter().enumerate() {
