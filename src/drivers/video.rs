@@ -33,6 +33,8 @@ impl VideoDriver {
             .index(find_sdl_gl_driver().ok_or("No opengl driver")?)
             .build()?;
 
+        log::info!("SDL video subsystem initialized");
+
         // Set screen to all black
         canvas.set_draw_color(Color::RGB(0,0,0));
         canvas.clear();
@@ -67,6 +69,7 @@ impl VideoDriver {
             }
         }
         self.canvas.present();
+        log::debug!("canvas updated");
         Ok(())
     }
 }
@@ -75,6 +78,7 @@ impl VideoDriver {
 fn find_sdl_gl_driver() -> Option<u32> {
     for (index, item) in sdl2::render::drivers().enumerate() {
         if item.name == "opengl" {
+            log::info!("opengl driver identified");
             return Some(index as u32);
         }
     }

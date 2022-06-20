@@ -46,6 +46,8 @@ impl AudioDriver {
         };
 
         let device = audio_subsystem.open_playback(None, &desired_spec, |spec| {
+            log::debug!("audio spec obtained: {:?}", spec);
+
             SquareWave {
                 phase_inc: 440.0 / spec.freq as f32,
                 phase: 0.0,
@@ -53,6 +55,7 @@ impl AudioDriver {
             }
         })?;
 
+        log::info!("SDL audio subsystem initialized");
         Ok(AudioDriver{ device, state: false })
     }
 

@@ -15,12 +15,13 @@ pub struct InputDriver {
 impl InputDriver {
     pub fn new(sdl_context: &Sdl) -> Result<Self, Box<dyn Error>> {
         let events = sdl_context.event_pump()?;
+        log::info!("SDL eventpump initialized");
         Ok( InputDriver { events } )
     }
 
     /// Polls the sdl eventpump for events, 
     /// then sets the keypad to the proper state.
-    pub fn set_keypad(&mut self, keypad: &mut Keypad) -> Result<(), Box<dyn Error>> {
+    pub fn poll(&mut self, keypad: &mut Keypad) -> Result<(), Box<dyn Error>> {
 
         for event in self.events.poll_iter() {
             if let Event::Quit{..} = event { 

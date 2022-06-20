@@ -7,11 +7,13 @@ use chip8::{
     emu::{
         keypad::Keypad, 
         frame::Frame,
+        cpu::CPU,
     }, 
     drivers::{
         video::VideoDriver,
         input::InputDriver,
         audio::AudioDriver,
+        file::FileDriver,
     },
 };
 
@@ -22,11 +24,15 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut video_driver = VideoDriver::new(&sdl_context)?;
     let mut input_driver = InputDriver::new(&sdl_context)?;
     let mut audio_driver = AudioDriver::new(&sdl_context)?;
+    let rom = FileDriver::from_string("./sierpinski.ch8")?;
 
     let mut keypad = Keypad::new();
     let mut frame = Frame::new();
 
-    while input_driver.set_keypad(&mut keypad).is_ok() {
+    let mut cpu = CPU::new();
+    cpu.load(rom.data);
+
+    while input_driver.poll(&mut keypad).is_ok() {
         for (key_idx, state) in keypad.state().iter().enumerate() {
             frame.buf[key_idx / 4][key_idx % 4] = *state;
             
@@ -37,7 +43,6 @@ fn main() -> Result<(), Box<dyn Error>> {
                     audio_driver.off(); 
                 }
             }
-                
         }
 
         video_driver.draw(&frame)?;
