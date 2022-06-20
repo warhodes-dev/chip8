@@ -6,7 +6,7 @@ use std::{
 use chip8::{
     emu::{
         keypad::Keypad, 
-        frame::FB_SIZE,
+        frame::Frame,
     }, 
     drivers::{
         video::VideoDriver,
@@ -24,11 +24,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut audio_driver = AudioDriver::new(&sdl_context)?;
 
     let mut keypad = Keypad::new();
-    let mut fb = [[false; FB_SIZE.x]; FB_SIZE.y];
+    let mut frame = Frame::new();
 
     while input_driver.set_keypad(&mut keypad).is_ok() {
         for (key_idx, state) in keypad.state().iter().enumerate() {
-            fb[key_idx / 4][key_idx % 4] = *state;
+            frame.buf[key_idx / 4][key_idx % 4] = *state;
             
             if key_idx == 0 {
                 if *state { 
@@ -40,7 +40,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 
         }
 
-        video_driver.draw(&fb)?;
+        video_driver.draw(&frame)?;
 
         thread::sleep(Duration::from_millis(16));
     }

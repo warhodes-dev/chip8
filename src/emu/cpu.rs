@@ -1,7 +1,7 @@
 use crate::emu::{
     frame::{
         FB_SIZE,
-        FrameBuf,
+        Frame,
     },
     keypad::Keypad,
 };
@@ -16,7 +16,7 @@ pub struct CPU {
     pc: u16,
     sp: u8,
     kp: Keypad,
-    fb: FrameBuf,
+    fb: Frame,
 }
 
 #[allow(clippy::new_without_default)]
@@ -32,7 +32,7 @@ impl CPU {
             pc: 0u16,
             sp: 0u8,
             kp: Keypad::new(),
-            fb: [[false; FB_SIZE.x]; FB_SIZE.y],
+            fb: Frame::new(),
         }
     }
 
