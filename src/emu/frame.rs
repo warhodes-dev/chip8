@@ -4,14 +4,14 @@ pub struct FramebufSpec { pub x: usize, pub y: usize, }
 
 /// The internal emulator framebuffer.
 pub struct Frame {
-    pub buf: [[bool; FB_SIZE.x]; FB_SIZE.y],
+    pub buf: [[bool; FB_SIZE.y]; FB_SIZE.x],
     pub update: bool,
 }
 
 #[allow(clippy::new_without_default)]
 impl Frame {
     pub fn new() -> Self {
-        let buf = [[false; FB_SIZE.x]; FB_SIZE.y];
+        let buf = [[false; FB_SIZE.y]; FB_SIZE.x];
         let update = true;
         Frame { buf, update }
     }

@@ -14,7 +14,7 @@ use crate::emu::frame::{
 const SCALE: u32 = 8;
 
 pub struct VideoDriver {
-    canvas: Canvas<Window>
+    canvas: Canvas<Window>,
 }
 
 impl VideoDriver {
@@ -69,7 +69,6 @@ impl VideoDriver {
             }
         }
         self.canvas.present();
-        log::debug!("canvas updated");
         Ok(())
     }
 }

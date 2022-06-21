@@ -5,9 +5,10 @@ use std::{
     error::Error,
 };
 
+const ROM_SIZE: usize = 4096 - 0x200;
+
 pub struct FileDriver {
-    pub data: [u8; 4096],
-    size: usize,
+    pub data: [u8; ROM_SIZE],
 }
 
 impl FileDriver {
@@ -17,13 +18,9 @@ impl FileDriver {
     }
 
     pub fn from_path(path: &Path) -> Result<Self, Box<dyn Error>> {
-        let mut data = [0u8; 4096];
+        let mut data = [0u8; ROM_SIZE];
         let mut f = File::open(path)?;
-        let size = f.read(&mut data)?;
-        Ok(FileDriver { data, size })
-    }
-
-    pub fn size(&self) -> usize {
-        self.size
+        f.read(&mut data)?;
+        Ok(FileDriver { data })
     }
 }

@@ -18,36 +18,26 @@ use chip8::{
 };
 
 fn main() -> Result<(), Box<dyn Error>> {
-    simple_logger::SimpleLogger::new().init()?;
+    simple_logger::SimpleLogger::new().with_level(log::LevelFilter::Info).init()?;
 
     let sdl_context = sdl2::init()?;
     let mut video_driver = VideoDriver::new(&sdl_context)?;
     let mut input_driver = InputDriver::new(&sdl_context)?;
-    let mut audio_driver = AudioDriver::new(&sdl_context)?;
-    let rom = FileDriver::from_string("./sierpinski.ch8")?;
-
-    let mut keypad = Keypad::new();
-    let mut frame = Frame::new();
+    let audio_driver = AudioDriver::new(&sdl_context)?;
+    let rom = FileDriver::from_string("./ibm.ch8")?;
 
     let mut cpu = CPU::new();
-    cpu.load(rom.data);
+    cpu.load(&rom.data);
 
-    while input_driver.poll(&mut keypad).is_ok() {
-        for (key_idx, state) in keypad.state().iter().enumerate() {
-            frame.buf[key_idx / 4][key_idx % 4] = *state;
-            
-            if key_idx == 0 {
-                if *state { 
-                    audio_driver.on(); 
-                } else { 
-                    audio_driver.off(); 
-                }
-            }
+    while input_driver.poll(&mut cpu.keypad).is_ok() {
+        cpu.step();
+
+        if cpu.frame_update {
+            video_driver.draw(&cpu.frame)?;
+            cpu.frame_update = false;
         }
 
-        video_driver.draw(&frame)?;
-
-        thread::sleep(Duration::from_millis(16));
+        thread::sleep(Duration::from_millis(2));
     }
 
     Ok(())
