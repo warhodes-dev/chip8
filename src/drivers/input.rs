@@ -15,7 +15,7 @@ pub struct InputDriver {
 impl InputDriver {
     pub fn new(sdl_context: &Sdl) -> Result<Self, Box<dyn Error>> {
         let events = sdl_context.event_pump()?;
-        log::info!("SDL eventpump initialized");
+        log::info!("SDL input handler initialized");
         Ok( InputDriver { events } )
     }
 

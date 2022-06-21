@@ -20,7 +20,7 @@ impl FileDriver {
     pub fn from_path(path: &Path) -> Result<Self, Box<dyn Error>> {
         let mut data = [0u8; ROM_SIZE];
         let mut f = File::open(path)?;
-        f.read(&mut data)?;
+        let _ = f.read(&mut data)?;
         Ok(FileDriver { data })
     }
 }
