@@ -116,10 +116,10 @@ impl CPU {
         // reset collision register
         self.registers[0xf] = 0;
         for byte_idx in 0..n {
-            let vy = self.registers[y as usize] + byte_idx;
+            let vy = (self.registers[y as usize] + byte_idx) % FB_SIZE.y as u8;
             let byte = self.memory[(self.index_register + byte_idx as u16) as usize];
             for bit_idx in 0..8 {
-                let vx = self.registers[x as usize] + bit_idx;
+                let vx = (self.registers[x as usize] + bit_idx) % FB_SIZE.x as u8;
                 let pixel = (byte & (1 << (7 - bit_idx))) != 0;
                 if pixel && self.frame.buf[vx as usize][vy as usize] {
                     self.registers[0xf] = 1;
