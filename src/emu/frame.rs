@@ -2,9 +2,12 @@
 pub const FB_SIZE: FramebufSpec = FramebufSpec { x: 64, y: 32 };
 pub struct FramebufSpec { pub x: usize, pub y: usize, }
 
+pub type FrameBuffer = [[bool; FB_SIZE.y]; FB_SIZE.x];
+
+
 /// The internal emulator framebuffer.
 pub struct Frame {
-    pub buf: [[bool; FB_SIZE.y]; FB_SIZE.x],
+    pub buf: FrameBuffer,
     pub update: bool,
 }
 

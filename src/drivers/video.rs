@@ -6,7 +6,7 @@ use sdl2::{
     pixels::Color,
 };
 use crate::emu::frame::{
-    Frame,
+    FrameBuffer,
     FB_SIZE,
 };
 
@@ -43,9 +43,9 @@ impl VideoDriver {
     }
 
     /// Update the sdl window to correspond to the framebuffer
-    pub fn draw(&mut self, frame: &Frame) -> Result<(), Box<dyn Error>> {
+    pub fn draw(&mut self, framebuf: &FrameBuffer) -> Result<(), Box<dyn Error>> {
 
-        for (x, row) in frame.buf.iter().enumerate() {
+        for (x, row) in framebuf.iter().enumerate() {
             for (y, pixel) in row.iter().enumerate() {
 
                 let window_x = x as u32 * SCALE;

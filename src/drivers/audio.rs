@@ -61,11 +61,13 @@ impl AudioDriver {
 
     /// Sets the audio output to ON, lasting until turned OFF.
     pub fn on(&mut self) {
+        log::debug!("audio on");
         self.device.resume();
     }
 
     /// Sets the audio output OFF.
     pub fn off(&mut self) {
+        log::debug!("audio off");
         self.device.pause();
     }
 }
