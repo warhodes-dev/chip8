@@ -15,7 +15,7 @@ pub struct Frame {
 impl Frame {
     pub fn new() -> Self {
         let buf = [[false; FB_SIZE.y]; FB_SIZE.x];
-        let update = true;
+        let update = false;
         Frame { buf, update }
     }
 }

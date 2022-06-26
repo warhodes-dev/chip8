@@ -12,26 +12,16 @@ use crate::emu::{
 };
 
 pub struct CPU {
-    /// Registers
-    v: [u8; 16],
-    /// Memory
-    mem: [u8; 4096],    
-    /// Stack
-    stack: [u16; 16],
-    /// Delay timer
-    dt: u8,
-    /// Sound timer
-    st: u8,
-    /// Address register
-    i: u16,
-    /// Program counter
-    pc: u16,
-    /// Stack pointer
-    sp: u8,
-    /// Keypad
-    pub kp: Keypad,
-    /// Frame(buffer)
-    pub fb: Frame,
+    v: [u8; 16],      // Registers
+    mem: [u8; 4096],  // Memory
+    stack: [u16; 16], // Stack
+    dt: u8,           // Delay timer
+    st: u8,           // Sound timer
+    i: u16,           // Address register
+    pc: u16,          // Program counter
+    sp: u8,           // Stack pointer
+    pub kp: Keypad,   // Keypad
+    pub fb: Frame,    // Frame(buffer)
 }
 
 #[allow(clippy::new_without_default)]
@@ -43,11 +33,11 @@ impl CPU {
 
         CPU {
             v: [0; 16],
-            mem: [0; 4096],
+            mem,
             stack: [0; 16],
             dt: 0,
             st: 0,
-            i:  0x200,
+            i:  0,
             pc: 0x200,
             sp: 0,
             kp: Keypad::new(),
@@ -63,17 +53,21 @@ impl CPU {
 
     /// Fetches opcode, decodes and executes instruction
     pub fn step(&mut self) {
-
         if self.kp.block {
             for (key_idx, &key_state) in self.kp.state.iter().enumerate() {
                 if key_state {
-                    self.v[self.kp.block_key] = key_idx as u8;
+                    log::trace!("key {} pressed!", key_idx);
+                    self.v[self.kp.block_reg] = key_idx as u8;
+                    self.kp.block = false;
                     break;
                 }
             }
         } else {
             if self.dt > 0 { 
                 self.dt -= 1; 
+            }
+            if self.st > 0 {
+                self.st -= 1;
             }
             let opcode = self.fetch();
             self.decode_and_execute(opcode);
@@ -93,7 +87,6 @@ impl CPU {
     }
 
     fn decode_and_execute(&mut self, opcode: u16) {
-        log::trace!("OP: {:#06x}", opcode);
         let op = (
             ((opcode & 0xF000) >> 12) as u8,
             ((opcode & 0x0F00) >> 8) as u8,
@@ -107,7 +100,7 @@ impl CPU {
         let nn  = (opcode & 0x00FF) as usize;
         let nnn = (opcode & 0x0FFF) as usize;
 
-        match op {
+        let pc_increment = match op {
             (0x0, 0x0, 0xE, 0x0) => { self.op_00e0() }
             (0x0, 0x0, 0xE, 0xE) => { self.op_00ee() }
             (0x0, _, _, _) => { self.op_0nnn(nnn) }
@@ -144,14 +137,14 @@ impl CPU {
             (0xF, _, 0x5, 0x5) => { self.op_fx55(x) }
             (0xF, _, 0x6, 0x5) => { self.op_fx65(x) }
             _ => { panic!("op {:#06x} is invalid", opcode); }
-        }
+        };
     }
 
     /* Instructions */
 
     /// OP: Call machine code routine at NNN
-    fn op_0nnn(&mut self, nnn: usize) {
-        unimplemented!()
+    fn op_0nnn(&mut self, _nnn: usize) {
+        panic!("opcode 0x0nnn is not supported.")
     }
 
     /// OP: Clears the screen
@@ -164,7 +157,7 @@ impl CPU {
     fn op_00ee(&mut self) {
         self.pc = self.stack[self.sp as usize];
         self.sp -= 1;
-        // Todo: test this
+        // TODO: test this
     }
 
     /// OP: Jump to addres NNN
@@ -174,10 +167,9 @@ impl CPU {
 
     /// OP: Calls subroutine at NNN
     fn op_2nnn(&mut self, nnn: usize) {
-        self.stack[self.sp as usize] = self.pc;
         self.sp += 1;
+        self.stack[self.sp as usize] = self.pc;
         self.pc = nnn as u16;
-        // Todo: Test this
     }
 
     /// OP: Skips the next instruction if VX == NN
@@ -290,19 +282,22 @@ impl CPU {
     }
 
     /// OP: Draw sprite to framebuffer
+    ///     Display n-byte sprite starting at register I at (VX, VY), then
+    ///     set VF = collision
     fn op_dxyn(&mut self, x: usize, y: usize, n: usize) {
+        log::trace!("Drawing sprite @ 0x{:04x}", self.i);
         // reset collision register
         self.v[0xf] = 0;
-        for byte_idx in 0..(n as u8) {
-            let vy = (self.v[y] + byte_idx) % FB_SIZE.y as u8;
+        for byte_idx in 0..n as u8 {
+            let y = ((self.v[y] + byte_idx) % FB_SIZE.y as u8) as usize;
             let byte = self.mem[(self.i + byte_idx as u16) as usize];
             for bit_idx in 0..8 {
-                let vx = (self.v[x] + bit_idx) % FB_SIZE.x as u8;
+                let x = ((self.v[x] + bit_idx) % FB_SIZE.x as u8) as usize;
                 let pixel = (byte & (1 << (7 - bit_idx))) != 0;
-                if pixel && self.fb.buf[vx as usize][vy as usize] {
+                if pixel && self.fb.buf[x][y] {
                     self.v[0xf] = 1;
                 }
-                self.fb.buf[vx as usize][vy as usize] ^= pixel;
+                self.fb.buf[x][y] ^= pixel;
             }
         }
         self.fb.update = true;
@@ -330,10 +325,9 @@ impl CPU {
     }
 
     /// OP: Wait for key press and store in VX [Blocking operation]
-    //  TODO: Make sure this works
     fn op_fx0a(&mut self, x: usize) {
         self.kp.block = true;
-        self.kp.block_key = x;
+        self.kp.block_reg = x;
     }
 
     /// OP: Set delay timer to VX
@@ -352,7 +346,7 @@ impl CPU {
     }
 
     /// OP: Sets address register to location of sprite for character in VX
-    //      ( Accesses the font data )
+    //  These are font characters, and have a height of 5
     fn op_fx29(&mut self, x: usize) {
         self.i = (self.v[x] * 5) as u16;
     }
@@ -362,9 +356,8 @@ impl CPU {
     ///     at mem[i+1], and the least significant digit at mem[i+2].
     fn op_fx33(&mut self, x: usize) {
         let vx = self.v[x];
-        // Slightly cursed
         for (idx, digit) in vx.to_string().chars().map(|c| c.to_digit(10).unwrap() as u8).enumerate() {
-            //log::info!("idx = {} ; digit = {}", idx, digit);
+            log::debug!("idx = {} ; digit = {}", idx, digit);
             self.mem[self.i as usize + idx] = digit;
         }
     }
@@ -373,6 +366,7 @@ impl CPU {
     ///     I is left unmodified
     fn op_fx55(&mut self, x: usize) {
         for idx in 0..(x+1) {
+            log::debug!("mem[i:{0}+{1}] = v[{1}]", self.i, idx);
             self.mem[self.i as usize + idx] = self.v[idx];
         }
     }
@@ -381,6 +375,7 @@ impl CPU {
     ///     I is left unmodified
     fn op_fx65(&mut self, x: usize) {
         for idx in 0..(x+1) {
+            log::debug!("v[{1}] = mem[i:{0}+{1}]", self.i, idx);
             self.v[idx] = self.mem[self.i as usize + idx];
         }
     }

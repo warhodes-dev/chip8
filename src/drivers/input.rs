@@ -20,7 +20,7 @@ impl InputDriver {
     }
 
     /// Polls the sdl eventpump for events, 
-    /// then sets the keypad to the proper state.
+    /// then sets the passed keypad struct to the proper state.
     pub fn poll(&mut self, keypad: &mut Keypad) -> Result<(), Box<dyn Error>> {
 
         for event in self.events.poll_iter() {
@@ -32,8 +32,7 @@ impl InputDriver {
         let keyboard_state = self.events.keyboard_state();
 
         // Convert scancodes into keycodes (drop invalid codes)
-        let pressed_keys = keyboard_state
-            .pressed_scancodes()
+        let pressed_keys = keyboard_state.pressed_scancodes()
             .filter_map(Keycode::from_scancode);
         
         // Set keypad to true for only pressed keys
