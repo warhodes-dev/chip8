@@ -49,6 +49,29 @@ impl CPU {
     pub fn load(&mut self, rom: &[u8]) {
         let (_, proc_region) = self.mem.split_at_mut(0x200);
         proc_region.copy_from_slice(rom);
+
+        /* ========= CHIP-8 TEST SUITE DEBUG PARAMETERS =========
+         * Set the following memory addresses to configure tests:
+         *
+         * (0x1FF) Test Select:
+         *     1: IBM Logo
+         *     2: Corax89's opcode test
+         *     3: Flags test
+         *     4: Quirks test
+         *     5: Keypad test
+         *
+         *  (0x1FE) Quirk HW Target:
+         *      1: Chip-8
+         *      2: SuperChip 1.1
+         *      3: XO-Chip
+         *
+         *  (Example) Quirk test for the standard Chip-8:
+         *
+         *      self.mem[0x1FF] = 4; 
+         *      self.mem[0x1FE] = 1;
+         *
+         * DEBUGGING PURPOSES. DO NOT SET WHEN BUILDING FOR RELEASE */
+        self.mem[0x1FF] = 3;
     }
 
     /// Fetches opcode, decodes and executes instruction
@@ -100,7 +123,7 @@ impl CPU {
         let nn  = (opcode & 0x00FF) as usize;
         let nnn = (opcode & 0x0FFF) as usize;
 
-        let pc_increment = match op {
+        match op {
             (0x0, 0x0, 0xE, 0x0) => { self.op_00e0() }
             (0x0, 0x0, 0xE, 0xE) => { self.op_00ee() }
             (0x0, _, _, _) => { self.op_0nnn(nnn) }
@@ -174,28 +197,28 @@ impl CPU {
 
     /// OP: Skips the next instruction if VX == NN
     fn op_3xnn(&mut self, x: usize, nn: usize) {
-        if self.v[x as usize] == nn as u8 {
+        if self.v[x] == nn as u8 {
             self.pc += 2;
         }
     }
 
     /// OP: Skips the next instruction if VX != NN
     fn op_4xnn(&mut self, x: usize, nn: usize) {
-        if self.v[x as usize] != nn as u8 {
+        if self.v[x] != nn as u8 {
             self.pc += 2;
         }
     }
 
     /// OP: Skips the next instruction if VX == VY
     fn op_5xy0(&mut self, x: usize, y: usize) {
-        if self.v[x as usize] == self.v[y as usize] {
+        if self.v[x] == self.v[y] {
             self.pc += 2;
         }
     }
 
     /// OP: Set VX to NN
     fn op_6xnn(&mut self, x: usize, nn: usize) {
-        self.v[x as usize] = nn as u8;
+        self.v[x] = nn as u8;
     }
 
     /// OP: Add NN to VX
@@ -211,30 +234,35 @@ impl CPU {
     /// OP: Sets VX to (VX OR VY)
     fn op_8xy1(&mut self, x: usize, y: usize) {
         self.v[x] |= self.v[y];
+        self.v[0xF] = 0;
     }
 
     /// OP: Sets VX to (VX AND VY)
     fn op_8xy2(&mut self, x: usize, y: usize) {
         self.v[x] &= self.v[y];
+        self.v[0xF] = 0;
     }
     
     /// OP: Sets VX to (VX XOR VY) 
     fn op_8xy3(&mut self, x: usize, y: usize) {
         self.v[x] ^= self.v[y];
+        self.v[0xF] = 0;
     }
 
     /// OP: Adds VY to VX.
     ///     VF = carry
     fn op_8xy4(&mut self, x: usize, y: usize) {
-        self.v[0xF] = if (self.v[x] as u16 + self.v[y] as u16) > 255 { 1 } else { 0 };
-        self.v[x] = self.v[x].wrapping_add(self.v[y]);
+        let (result, wrapped) = self.v[x].overflowing_add(self.v[y]);
+        self.v[0xF] = if wrapped { 1 } else { 0 };
+        self.v[x] = result;
     }
 
     /// OP: Subtracts VY from VX
     ///     VF = NOT borrow
     fn op_8xy5(&mut self, x: usize, y: usize) {
-        self.v[0xF] = if self.v[x] > self.v[y] { 1 } else { 0 };
-        self.v[x] = self.v[x].wrapping_sub(self.v[y]);
+        let (result, wrapped) = self.v[x].overflowing_sub(self.v[y]);
+        self.v[0xF] = if wrapped { 0 } else { 1 };
+        self.v[x] = result;
     }
 
     /// OP: Shifts VX right by 1
@@ -247,8 +275,9 @@ impl CPU {
     /// OP: Sets VX to VY - VX
     ///     VF = NOT borrow
     fn op_8xy7(&mut self, x: usize, y: usize) {
-        self.v[0xf] = if self.v[y] > self.v[x] { 1 } else { 0 };
-        self.v[x] = self.v[y].wrapping_sub(self.v[x]);
+        let (result, wrapped) = self.v[y].overflowing_sub(self.v[x]);
+        self.v[0xF] = if wrapped { 0 } else { 1 };
+        self.v[x] = result;
     }
 
     /// OP: Shifts VX left by 1
@@ -285,12 +314,18 @@ impl CPU {
     ///     Display n-byte sprite starting at register I at (VX, VY), then
     ///     set VF = collision
     fn op_dxyn(&mut self, x: usize, y: usize, n: usize) {
-        log::trace!("Drawing sprite @ 0x{:04x}", self.i);
         // reset collision register
         self.v[0xf] = 0;
         for byte_idx in 0..n as u8 {
-            let y = ((self.v[y] + byte_idx) % FB_SIZE.y as u8) as usize;
+
+            let y = (self.v[y] + byte_idx) as usize;
+            
+            if y >= FB_SIZE.y { 
+                break; // Clip sprites at bottom edge
+            }
+
             let byte = self.mem[(self.i + byte_idx as u16) as usize];
+
             for bit_idx in 0..8 {
                 let x = ((self.v[x] + bit_idx) % FB_SIZE.x as u8) as usize;
                 let pixel = (byte & (1 << (7 - bit_idx))) != 0;
@@ -331,6 +366,7 @@ impl CPU {
     }
 
     /// OP: Set delay timer to VX
+    //TODO: The delay timer needs to run at 60 HZ
     fn op_fx15(&mut self, x: usize) {
         self.dt = self.v[x];
     }
@@ -357,7 +393,6 @@ impl CPU {
     fn op_fx33(&mut self, x: usize) {
         let vx = self.v[x];
         for (idx, digit) in vx.to_string().chars().map(|c| c.to_digit(10).unwrap() as u8).enumerate() {
-            log::debug!("idx = {} ; digit = {}", idx, digit);
             self.mem[self.i as usize + idx] = digit;
         }
     }
@@ -366,17 +401,17 @@ impl CPU {
     ///     I is left unmodified
     fn op_fx55(&mut self, x: usize) {
         for idx in 0..(x+1) {
-            log::debug!("mem[i:{0}+{1}] = v[{1}]", self.i, idx);
             self.mem[self.i as usize + idx] = self.v[idx];
         }
+        //self.i += 1;
     }
 
     /// OP: Fills from V0 to VX with values from mem, starting at address register
     ///     I is left unmodified
     fn op_fx65(&mut self, x: usize) {
         for idx in 0..(x+1) {
-            log::debug!("v[{1}] = mem[i:{0}+{1}]", self.i, idx);
             self.v[idx] = self.mem[self.i as usize + idx];
         }
+        //self.i += 1;
     }
 }

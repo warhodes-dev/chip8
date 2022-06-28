@@ -48,9 +48,9 @@ impl VideoDriver {
                 let window_y = y as u32 * self.scale;
 
                 let color = if *pixel {
-                    Color::RGB(255, 255, 255)
+                    Color::RGB(32, 42, 52)
                 } else {
-                    Color::RGB(0, 0, 0)
+                    Color::RGB(145, 145, 135)
                 };
 
                 self.canvas.set_draw_color(color);
