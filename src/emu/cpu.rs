@@ -71,7 +71,6 @@ impl CPU {
          *      self.mem[0x1FE] = 1;
          *
          * DEBUGGING PURPOSES. DO NOT SET WHEN BUILDING FOR RELEASE */
-        self.mem[0x1FF] = 3;
     }
 
     /// Fetches opcode, decodes and executes instruction
