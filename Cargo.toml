@@ -13,5 +13,5 @@ clap = { version = "3.2.6", features = ["derive"] }
 [dependencies.sdl2]
 version = "0.35.2"
 default-features = false
-#features = ["gfx"]
+features = ["ttf"]
 

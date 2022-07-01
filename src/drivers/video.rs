@@ -10,11 +10,11 @@ use crate::emu::frame::{
     FB_SIZE,
 };
 
-type XY = (u32, u32);
-
 struct Frame {
-    position: XY,
-    size: XY,
+    x: u32,
+    y: u32,
+    w: u32,
+    h: u32,
 }
 
 pub struct VideoDriver {

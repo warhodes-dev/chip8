@@ -36,8 +36,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut total_cycles: u128 = 0;
     let start_time = Instant::now();
 
-    let test = 0;
-    /*
     while input_driver.poll(&mut cpu.kp).is_ok() {
         cpu.step();
 
@@ -59,7 +57,6 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         thread::sleep(Duration::from_millis(config.step_delay));
     }
-    */
 
     let time_elapsed = Instant::now() - start_time;
     let cycles_per = total_cycles as f64 / time_elapsed.as_millis() as f64;
