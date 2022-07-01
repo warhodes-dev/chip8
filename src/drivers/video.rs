@@ -10,6 +10,13 @@ use crate::emu::frame::{
     FB_SIZE,
 };
 
+type XY = (u32, u32);
+
+struct Frame {
+    position: XY,
+    size: XY,
+}
+
 pub struct VideoDriver {
     canvas: Canvas<Window>,
     scale: u32,
@@ -38,8 +45,13 @@ impl VideoDriver {
         Ok( VideoDriver{ canvas, scale } )
     }
 
+    // pub fn draw -- draws all frames
+    // fn draw_cpu -- draws the cpu state
+    // fn draw_mem -- draws the mem state
+    // fn draw_emu -- draws the emulator frame
+
     /// Update the sdl window to correspond to the framebuffer
-    pub fn draw(&mut self, framebuf: &FrameBuffer) -> Result<(), Box<dyn Error>> {
+    pub fn draw_screen(&mut self, framebuf: &FrameBuffer) -> Result<(), Box<dyn Error>> {
 
         for (x, row) in framebuf.iter().enumerate() {
             for (y, pixel) in row.iter().enumerate() {

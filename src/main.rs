@@ -1,10 +1,13 @@
 use std::{
     error::Error, 
-    time::{Duration, Instant},
+    time::{
+        Duration, 
+        Instant,
+    },
     thread,
 };
-use clap::Parser;
 use chip8::{
+    config::Config,
     emu::cpu::CPU, 
     drivers::{
         video::VideoDriver,
@@ -15,7 +18,7 @@ use chip8::{
 };
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let config = Config::new(Cli::parse())?;
+    let config = Config::from_args()?;
 
     simple_logger::SimpleLogger::new()
         .with_level(config.log_level)
@@ -33,6 +36,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut total_cycles: u128 = 0;
     let start_time = Instant::now();
 
+    let test = 0;
+    /*
     while input_driver.poll(&mut cpu.kp).is_ok() {
         cpu.step();
 
@@ -41,7 +46,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             total_cycles += 1;
 
             if cpu.fb.update{
-                video_driver.draw(&cpu.fb.buf)?;
+                video_driver.draw_screen(&cpu.fb.buf)?;
                 cpu.fb.update= false;
             }
 
@@ -54,6 +59,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         thread::sleep(Duration::from_millis(config.step_delay));
     }
+    */
 
     let time_elapsed = Instant::now() - start_time;
     let cycles_per = total_cycles as f64 / time_elapsed.as_millis() as f64;
@@ -64,54 +70,4 @@ fn main() -> Result<(), Box<dyn Error>> {
     log::info!("cyc/{:8}: {:6}", unit, cycles_per);
 
     Ok(())
-}
-
-/* Configure Emulator */
-
-#[derive(Parser)]
-#[clap(name = "Chip8 Emulator")]
-#[clap(author = "Wm. A. Rhodes <warhodes@gmail.com>")]
-#[clap(about = "A simple chip8 emulator")]
-struct Cli {
-    #[clap(value_parser)]
-    rom_path: String,
-
-    #[clap(default_value_t = String::from("off"), short, long, value_parser)]
-    log_level: String,
-
-    #[clap(default_value_t = 1.0, short, long, value_parser)]
-    speed: f64,
-
-    #[clap(default_value_t = 8, long, value_parser)]
-    scale: u32,
-}
-
-struct Config {
-    rom_path: String,
-    log_level: log::LevelFilter,
-    step_delay: u64,
-    scale_factor: u32,
-}
-
-impl Config {
-    fn new(cli: Cli) -> Result<Self, Box<dyn Error>> {
-        let rom_path = cli.rom_path;
-
-        let log_level = match cli.log_level.as_str() {
-            "trace" | "5" => log::LevelFilter::Trace,
-            "debug" | "4" => log::LevelFilter::Debug,
-            "info"  | "3" => log::LevelFilter::Info,
-            "warn"  | "2" => log::LevelFilter::Warn,
-            "error" | "1" => log::LevelFilter::Error,
-            _ => log::LevelFilter::Off,
-        };
-
-        let clock_multi = cli.speed;
-
-        let step_delay = (2.0 / clock_multi) as u64;
-
-        let scale_factor = cli.scale;
-
-        Ok(Config { rom_path, log_level, step_delay, scale_factor })
-    }
 }
