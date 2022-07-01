@@ -85,15 +85,14 @@ impl CPU {
                 }
             }
         } else {
-            if self.dt > 0 { 
-                self.dt -= 1; 
-            }
-            if self.st > 0 {
-                self.st -= 1;
-            }
             let opcode = self.fetch();
             self.decode_and_execute(opcode);
         }
+    }
+
+    pub fn tick(&mut self) {
+        self.dt = self.dt.saturating_sub(1);
+        self.st = self.st.saturating_sub(1);
     }
 
     pub fn sound_state(&self) -> bool {
@@ -365,7 +364,6 @@ impl CPU {
     }
 
     /// OP: Set delay timer to VX
-    //TODO: The delay timer needs to run at 60 HZ
     fn op_fx15(&mut self, x: usize) {
         self.dt = self.v[x];
     }

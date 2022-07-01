@@ -2,7 +2,7 @@ use std::{
     error::Error, 
     time::{
         Duration, 
-        Instant,
+        Instant, 
     },
     thread,
 };
@@ -33,38 +33,31 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut cpu = CPU::new();
     cpu.load(&rom.data);
 
-    let mut total_cycles: u128 = 0;
-    let start_time = Instant::now();
-
     while input_driver.poll(&mut cpu.kp).is_ok() {
-        cpu.step();
 
-        // Do not update frame/sound/delay timer when blocking for keypress
-        if !cpu.kp.block { 
-            total_cycles += 1;
+        let cycle_start_time = Instant::now();
 
-            if cpu.fb.update{
-                video_driver.draw_screen(&cpu.fb.buf)?;
-                cpu.fb.update= false;
-            }
+        for _ in 0..10 {
+            cpu.step();
+        }
+        
+        cpu.tick();
 
-            if cpu.sound_state() {
-                audio_driver.on();
-            } else {
-                audio_driver.off();
-            }
+        if cpu.fb.update{
+            video_driver.draw_screen(&cpu.fb.buf)?;
+            cpu.fb.update= false;
         }
 
-        thread::sleep(Duration::from_millis(config.step_delay));
-    }
+        if cpu.sound_state() {
+            audio_driver.on();
+        } else {
+            audio_driver.off();
+        }
 
-    let time_elapsed = Instant::now() - start_time;
-    let cycles_per = total_cycles as f64 / time_elapsed.as_millis() as f64;
-    let unit = "millis";
-    log::info!("finished emulation");
-    log::info!("total cycles: {}", total_cycles);
-    log::info!("time elapsed: {}.{}", time_elapsed.as_secs(), time_elapsed.subsec_micros());
-    log::info!("cyc/{:8}: {:6}", unit, cycles_per);
+        let cycle_elapsed_time = Instant::now() - cycle_start_time;
+
+        thread::sleep(Duration::new(0, 1_000_000_000u32 / 60) - cycle_elapsed_time);
+    }
 
     Ok(())
 }
