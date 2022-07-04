@@ -10,27 +10,31 @@ use crate::emu::frame::{
     FB_SIZE,
 };
 
-struct Frame {
-    x: u32,
-    y: u32,
-    w: u32,
-    h: u32,
-}
+const SCALE: u32 = 6;
+const X_RES: u32 = 64 * SCALE;
+const Y_RES: u32 = 32 * SCALE;
+
+macro_rules! rect(
+    ($x:expr, $y:expr, $w:expr, $h:expr $(,)?) => (
+        Rect::new($x as i32, $y as i32, $w as u32, $h as u32)
+    )
+);
 
 pub struct VideoDriver {
     canvas: Canvas<Window>,
-    scale: u32,
 }
 
 impl VideoDriver {
-    pub fn new(sdl_context: &sdl2::Sdl, scale: u32) -> Result<Self, Box<dyn Error>> {
+    pub fn new(sdl_context: &sdl2::Sdl) -> Result<Self, Box<dyn Error>> {
 
         let video_subsystem = sdl_context.video()?;
 
         let window = video_subsystem
-            .window("Chip-8", FB_SIZE.x as u32 * scale, FB_SIZE.y as u32 * scale)
+            .window("Chip-8", X_RES, Y_RES)
             .opengl()
             .build()?;
+
+        //window.set_bordered(false);
 
         let mut canvas = window.into_canvas()
             .index(find_sdl_gl_driver().ok_or("No opengl driver")?)
@@ -38,26 +42,33 @@ impl VideoDriver {
 
         log::info!("SDL video subsystem initialized");
 
-        canvas.set_draw_color(Color::RGB(0,0,0));
-        canvas.clear();
+        canvas.set_draw_color(Color::RGB(145, 145, 135));
+        canvas.fill_rect(rect!(0, 0, X_RES, Y_RES))?;
+
         canvas.present();
 
-        Ok( VideoDriver{ canvas, scale } )
+        Ok( VideoDriver{ canvas } )
     }
 
-    // pub fn draw -- draws all frames
-    // fn draw_cpu -- draws the cpu state
-    // fn draw_mem -- draws the mem state
-    // fn draw_emu -- draws the emulator frame
+    /// Draws the entire application screen
+    pub fn draw(&mut self, fb: &FrameBuffer) -> Result<(), Box<dyn Error>> {
+        self.canvas.set_draw_color(Color::RGB(200,190,150));
+        self.canvas.fill_rect(rect!(0, 0, X_RES, Y_RES))?;
+        self.draw_screen(fb)?;
+        // TODO: Add more components to this
+        self.canvas.present();
+        Ok(())
+    }
 
-    /// Update the sdl window to correspond to the framebuffer
-    pub fn draw_screen(&mut self, framebuf: &FrameBuffer) -> Result<(), Box<dyn Error>> {
+    /// Update the screen subframe to correspond to the framebuffer
+    fn draw_screen(&mut self, framebuf: &FrameBuffer) -> Result<(), Box<dyn Error>> {
+        self.canvas.set_draw_color(Color::RGB(255,0,0));
 
-        for (x, row) in framebuf.iter().enumerate() {
-            for (y, pixel) in row.iter().enumerate() {
+        for (y, row) in framebuf.chunks_exact(FB_SIZE.x).enumerate() {
+            for (x, pixel) in row.iter().enumerate() {
 
-                let window_x = x as u32 * self.scale;
-                let window_y = y as u32 * self.scale;
+                let window_x = x as u32 * SCALE;
+                let window_y = y as u32 * SCALE;
 
                 let color = if *pixel {
                     Color::RGB(32, 42, 52)
@@ -66,18 +77,10 @@ impl VideoDriver {
                 };
 
                 self.canvas.set_draw_color(color);
-                self.canvas.fill_rect(
-                    Rect::new(
-                        window_x as i32,
-                        window_y as i32,
-                        (FB_SIZE.x as u32) * self.scale,
-                        (FB_SIZE.y as u32) * self.scale,
-                    )
-                )?;
+                self.canvas.fill_rect(rect!(window_x, window_y, SCALE, SCALE))?;
             }
         }
 
-        self.canvas.present();
 
         Ok(())
     }

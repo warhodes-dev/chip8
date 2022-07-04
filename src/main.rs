@@ -25,7 +25,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .init()?;
 
     let sdl_context = sdl2::init()?;
-    let mut video_driver = VideoDriver::new(&sdl_context, config.scale_factor)?;
+    let mut video_driver = VideoDriver::new(&sdl_context)?;
     let mut input_driver = InputDriver::new(&sdl_context)?;
     let mut audio_driver = AudioDriver::new(&sdl_context)?;
     let rom = FileDriver::from_string(&config.rom_path)?;
@@ -44,7 +44,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         cpu.tick();
 
         if cpu.fb.update{
-            video_driver.draw_screen(&cpu.fb.buf)?;
+            video_driver.draw(&cpu.fb.data)?;
             cpu.fb.update= false;
         }
 
@@ -56,7 +56,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         let cycle_elapsed_time = Instant::now() - cycle_start_time;
 
-        thread::sleep(Duration::new(0, 1_000_000_000u32 / 60) - cycle_elapsed_time);
+        thread::sleep(Duration::new(0, 1_000_000_000u32 / 60).saturating_sub(cycle_elapsed_time));
     }
 
     Ok(())

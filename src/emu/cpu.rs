@@ -12,16 +12,16 @@ use crate::emu::{
 };
 
 pub struct CPU {
-    v: [u8; 16],      // Registers
-    mem: [u8; 4096],  // Memory
-    stack: [u16; 16], // Stack
-    dt: u8,           // Delay timer
-    st: u8,           // Sound timer
-    i: u16,           // Address register
-    pc: u16,          // Program counter
-    sp: u8,           // Stack pointer
-    pub kp: Keypad,   // Keypad
-    pub fb: Frame,    // Frame(buffer)
+    pub v: [u8; 16],      // Registers
+    pub mem: [u8; 4096],  // Memory
+    pub stack: [u16; 16], // Stack
+    pub dt: u8,           // Delay timer
+    pub st: u8,           // Sound timer
+    pub i: u16,           // Address register
+    pub pc: u16,          // Program counter
+    pub sp: u8,           // Stack pointer
+    pub kp: Keypad,       // Keypad
+    pub fb: Frame,        // Frame
 }
 
 #[allow(clippy::new_without_default)]
@@ -50,27 +50,36 @@ impl CPU {
         let (_, proc_region) = self.mem.split_at_mut(0x200);
         proc_region.copy_from_slice(rom);
 
-        /* ========= CHIP-8 TEST SUITE DEBUG PARAMETERS =========
-         * Set the following memory addresses to configure tests:
-         *
-         * (0x1FF) Test Select:
-         *     1: IBM Logo
-         *     2: Corax89's opcode test
-         *     3: Flags test
-         *     4: Quirks test
-         *     5: Keypad test
-         *
-         *  (0x1FE) Quirk HW Target:
-         *      1: Chip-8
-         *      2: SuperChip 1.1
-         *      3: XO-Chip
-         *
-         *  (Example) Quirk test for the standard Chip-8:
-         *
-         *      self.mem[0x1FF] = 4; 
-         *      self.mem[0x1FE] = 1;
-         *
-         * DEBUGGING PURPOSES. DO NOT SET WHEN BUILDING FOR RELEASE */
+        /* ========= CHIP-8 TEST SUITE DEBUG PARAMETERS ========= *
+         * ----------- Timendus' chip8-test-suite.ch8 ----------- *
+         *                                                        *
+         * Set the following memory addresses to configure tests: *
+         *                                                        *
+         * (0x1FF) Test Select:                                   *
+         *     1: IBM Logo                                        *
+         *     2: Corax89's opcode test                           *
+         *     3: Flags test                                      *
+         *     4: Quirks test                                     *
+         *     5: Keypad test                                     *
+         *                                                        *
+         *  (0x1FE) Quirk HW Target:                              *
+         *      1: Chip-8                                         *
+         *      2: SuperChip 1.1                                  *
+         *      3: XO-Chip                                        *
+         *                                                        *
+         *  (0x1FE) Keypad Test Type:                             *
+         *      1: ex9e - Down                                    *
+         *      2: ex9e - Up                                      *
+         *      3: fx0a - Get key                                 *
+         *                                                        *
+         *  (Example) Quirk test for std. Chip-8:                 *
+         *                                                        *
+         *      self.mem[0x1FF] = 4;                              *
+         *      self.mem[0x1FE] = 1;                              *
+         *                                                        *
+         * === DEBUGGING PURPOSES ONLY * REMEMBER TO REMOVE ===== */
+
+        //self.mem[0x1ff] = 3;
     }
 
     /// Fetches opcode, decodes and executes instruction
@@ -90,11 +99,13 @@ impl CPU {
         }
     }
 
+    /// Progresses the sound and delay timers by 1
     pub fn tick(&mut self) {
         self.dt = self.dt.saturating_sub(1);
         self.st = self.st.saturating_sub(1);
     }
 
+    /// Gets the current speaker state of the cpu
     pub fn sound_state(&self) -> bool {
         self.st > 0 
     }
@@ -157,7 +168,7 @@ impl CPU {
             (0xF, _, 0x3, 0x3) => { self.op_fx33(x) }
             (0xF, _, 0x5, 0x5) => { self.op_fx55(x) }
             (0xF, _, 0x6, 0x5) => { self.op_fx65(x) }
-            _ => { panic!("op {:#06x} is invalid", opcode); }
+            _ => { panic!("op {:#06x} is unrecognized", opcode); }
         };
     }
 
@@ -170,7 +181,7 @@ impl CPU {
 
     /// OP: Clears the screen
     fn op_00e0(&mut self) {
-        self.fb.buf = [[false; FB_SIZE.y]; FB_SIZE.x];
+        self.fb.data = [false; FB_SIZE.y * FB_SIZE.x];
         self.fb.update = true;
     }
 
@@ -178,7 +189,6 @@ impl CPU {
     fn op_00ee(&mut self) {
         self.pc = self.stack[self.sp as usize];
         self.sp -= 1;
-        // TODO: test this
     }
 
     /// OP: Jump to addres NNN
@@ -232,26 +242,26 @@ impl CPU {
     /// OP: Sets VX to (VX OR VY)
     fn op_8xy1(&mut self, x: usize, y: usize) {
         self.v[x] |= self.v[y];
-        self.v[0xF] = 0;
+        self.v[0xf] = 0;
     }
 
     /// OP: Sets VX to (VX AND VY)
     fn op_8xy2(&mut self, x: usize, y: usize) {
         self.v[x] &= self.v[y];
-        self.v[0xF] = 0;
+        self.v[0xf] = 0;
     }
     
     /// OP: Sets VX to (VX XOR VY) 
     fn op_8xy3(&mut self, x: usize, y: usize) {
         self.v[x] ^= self.v[y];
-        self.v[0xF] = 0;
+        self.v[0xf] = 0;
     }
 
     /// OP: Adds VY to VX.
     ///     VF = carry
     fn op_8xy4(&mut self, x: usize, y: usize) {
         let (result, wrapped) = self.v[x].overflowing_add(self.v[y]);
-        self.v[0xF] = if wrapped { 1 } else { 0 };
+        self.v[0xf] = if wrapped { 1 } else { 0 };
         self.v[x] = result;
     }
 
@@ -259,30 +269,32 @@ impl CPU {
     ///     VF = NOT borrow
     fn op_8xy5(&mut self, x: usize, y: usize) {
         let (result, wrapped) = self.v[x].overflowing_sub(self.v[y]);
-        self.v[0xF] = if wrapped { 0 } else { 1 };
+        self.v[0xf] = if wrapped { 0 } else { 1 };
         self.v[x] = result;
     }
 
     /// OP: Shifts VX right by 1
     ///     Stores least signifigant bit of VX in VF
     fn op_8xy6(&mut self, x: usize, _y: usize) {
-        self.v[0xF] = self.v[x] & 1;
+        let overflow = (self.v[x] & 1) != 0;
         self.v[x] >>= 1;
+        self.v[0xf] = if overflow { 1 } else { 0 };
     }
 
     /// OP: Sets VX to VY - VX
     ///     VF = NOT borrow
     fn op_8xy7(&mut self, x: usize, y: usize) {
         let (result, wrapped) = self.v[y].overflowing_sub(self.v[x]);
-        self.v[0xF] = if wrapped { 0 } else { 1 };
+        self.v[0xf] = if wrapped { 0 } else { 1 };
         self.v[x] = result;
     }
 
     /// OP: Shifts VX left by 1
     ///     Stores most signifigant bit of VX in VF
     fn op_8xye(&mut self, x: usize, _y: usize) {
-        self.v[0xF] = (self.v[x] >> 7) & 1;
+        let overflow = (self.v[x] & (1 << 7)) != 0;
         self.v[x] <<= 1;
+        self.v[0xf] = if overflow { 1 } else { 0 };
     }
 
     /// OP: Skips next instruction if VX != VY
@@ -299,7 +311,7 @@ impl CPU {
 
     /// OP: Jump to address (NNN + V0)
     fn op_bnnn(&mut self, nnn: usize) {
-        self.pc = self.v[0] as u16 + nnn as u16; //TODO sketchy
+        self.pc = self.v[0] as u16 + nnn as u16;
     }
 
     /// OP: Set VX to (RNG AND NN)
@@ -316,21 +328,17 @@ impl CPU {
         self.v[0xf] = 0;
         for byte_idx in 0..n as u8 {
 
-            let y = (self.v[y] + byte_idx) as usize;
+            let y = ((self.v[y] + byte_idx) % FB_SIZE.y as u8) as usize;
             
-            if y >= FB_SIZE.y { 
-                break; // Clip sprites at bottom edge
-            }
-
             let byte = self.mem[(self.i + byte_idx as u16) as usize];
 
             for bit_idx in 0..8 {
                 let x = ((self.v[x] + bit_idx) % FB_SIZE.x as u8) as usize;
                 let pixel = (byte & (1 << (7 - bit_idx))) != 0;
-                if pixel && self.fb.buf[x][y] {
+                if pixel && self.fb.data[y * FB_SIZE.x + x] {
                     self.v[0xf] = 1;
                 }
-                self.fb.buf[x][y] ^= pixel;
+                self.fb.data[y * FB_SIZE.x + x] ^= pixel;
             }
         }
         self.fb.update = true;
@@ -400,7 +408,6 @@ impl CPU {
         for idx in 0..(x+1) {
             self.mem[self.i as usize + idx] = self.v[idx];
         }
-        //self.i += 1;
     }
 
     /// OP: Fills from V0 to VX with values from mem, starting at address register
@@ -409,6 +416,5 @@ impl CPU {
         for idx in 0..(x+1) {
             self.v[idx] = self.mem[self.i as usize + idx];
         }
-        //self.i += 1;
     }
 }

@@ -6,6 +6,7 @@ use clap::Parser;
 #[clap(author = "Wm. A. Rhodes <warhodes@gmail.com>")]
 #[clap(about = "A simple chip8 emulator")]
 pub struct Cli {
+
     #[clap(value_parser)]
     rom_path: String,
 
@@ -23,6 +24,8 @@ pub struct Config {
     pub rom_path: String,
     pub log_level: log::LevelFilter,
     pub step_delay: u64,
+
+    /// Unused
     pub scale_factor: u32,
 }
 
