@@ -34,6 +34,11 @@ impl Config {
         let cli = Cli::parse();
         let rom_path = cli.rom_path;
 
+        match rom_path.as_ref() {
+            Some(path) => log::debug!("rom path provided by cli: {}", path),
+            None => log::debug!("no rom path provided by cli"),
+        }
+
         let log_level = match cli.log_level.as_str() {
             "trace" | "5" => log::LevelFilter::Trace,
             "debug" | "4" => log::LevelFilter::Debug,

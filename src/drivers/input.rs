@@ -21,14 +21,17 @@ impl InputDriver {
     }
 
     /// Polls the sdl eventpump for events, 
-    /// then sets the passed keypad struct to the proper state.
+    /// checks for and handles Quit or FileDrop events,
+    /// and finally sets the cpu's keypad to the proper state.
     pub fn poll(&mut self, cpu: &mut CPU) -> Result<(), Box<dyn Error>> {
         for event in self.events.poll_iter() {
             match event {
                 Event::Quit{..} => {
+                    log::info!("Exiting");
                     return Err("User terminated SDL context".into()); 
                 },
                 Event::DropFile {filename, .. } => {
+                    log::info!("file dropped into context during main loop: {}", filename);
                     let rom = FileDriver::from_string(&filename)?;
                     cpu.reset();
                     cpu.load(&rom.data);
@@ -56,16 +59,18 @@ impl InputDriver {
 
     /// Polls the sdl eventpump for DropFile events
     /// then returns the dropped file's path
-    pub fn poll_filedrop(&mut self) -> Result<String, Box<dyn Error>> {
+    pub fn poll_filedrop(&mut self) -> Option<String> {
+        log::debug!("Waiting on FileDrop event");
 
         loop {
             for event in self.events.poll_iter() {
                 match event {
                     Event::Quit{..} => { 
-                        return Err("User terminated SDL context".into()); 
+                        return None; 
                     },
                     Event::DropFile{filename, ..} => {
-                        return Ok(filename);
+                        log::info!("file dropped into context: {}", filename);
+                        return Some(filename);
                     },
                     _ => {},
                 }

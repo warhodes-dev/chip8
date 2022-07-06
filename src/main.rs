@@ -30,8 +30,19 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut audio_driver = AudioDriver::new(&sdl_context)?;
 
     let rom_path = match config.rom_path {
-        Some(rom_path) => rom_path,
-        None => input_driver.poll_filedrop()?
+        Some(rom_path) => {
+            log::debug!("rom file provided by cli: {}", rom_path);
+            rom_path
+        },
+        // If no rom is provided by CLI, wait for user to drop a file in
+        None => {
+            log::debug!("no rom file provided by cli");
+            if let Some(path) = input_driver.poll_filedrop() {
+                path
+            } else {
+                return Ok(())
+            }
+        }
     };
     let rom = FileDriver::from_string(&rom_path)?;
 
