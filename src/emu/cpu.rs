@@ -26,23 +26,39 @@ pub struct CPU {
 
 #[allow(clippy::new_without_default)]
 impl CPU {
-    pub fn new() -> Self {
-        let mut mem = [0u8; 4096];
-        let (font_region, _) = mem.split_at_mut(0x50);
-        font_region.copy_from_slice(&FONT);
-
-        CPU {
+    pub fn initialize() -> Self {
+        let mut cpu = CPU {
             v: [0; 16],
-            mem,
+            mem: [0; 4096],
             stack: [0; 16],
             dt: 0,
             st: 0,
             i:  0,
-            pc: 0x200,
+            pc: 0,
             sp: 0,
             kp: Keypad::new(),
             fb: Frame::new(),
-        }
+        };
+        
+        cpu.reset();
+        cpu
+    }
+
+    pub fn reset(&mut self) {
+        let mut mem = [0u8; 4096];
+        let (font_region, _) = mem.split_at_mut(0x50);
+        font_region.copy_from_slice(&FONT);
+
+        self.v     = [0; 16];
+        self.mem   = mem;
+        self.stack = [0; 16];
+        self.dt    = 0;
+        self.st    = 0;
+        self.i     = 0;
+        self.pc    = 0x200;
+        self.sp    = 0;
+        self.kp.reset();
+        self.fb.reset();
     }
 
     /// Loads a program's data into mem for execution

@@ -50,18 +50,8 @@ impl VideoDriver {
         Ok( VideoDriver{ canvas } )
     }
 
-    /// Draws the entire application screen
-    pub fn draw(&mut self, fb: &FrameBuffer) -> Result<(), Box<dyn Error>> {
-        self.canvas.set_draw_color(Color::RGB(200,190,150));
-        self.canvas.fill_rect(rect!(0, 0, X_RES, Y_RES))?;
-        self.draw_screen(fb)?;
-        // TODO: Add more components to this
-        self.canvas.present();
-        Ok(())
-    }
-
     /// Update the screen subframe to correspond to the framebuffer
-    fn draw_screen(&mut self, framebuf: &FrameBuffer) -> Result<(), Box<dyn Error>> {
+    pub fn draw_screen(&mut self, framebuf: &FrameBuffer) -> Result<(), Box<dyn Error>> {
         self.canvas.set_draw_color(Color::RGB(255,0,0));
 
         for (y, row) in framebuf.chunks_exact(FB_SIZE.x).enumerate() {
@@ -80,8 +70,7 @@ impl VideoDriver {
                 self.canvas.fill_rect(rect!(window_x, window_y, SCALE, SCALE))?;
             }
         }
-
-
+        self.canvas.present();
         Ok(())
     }
 }

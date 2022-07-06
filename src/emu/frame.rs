@@ -18,5 +18,10 @@ impl Frame {
         let update = false;
         Frame { data, update }
     }
+
+    pub fn reset(&mut self) {
+        self.data.fill(false);
+        self.update = false;
+    }
 }
 

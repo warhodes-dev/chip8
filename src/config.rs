@@ -8,7 +8,7 @@ use clap::Parser;
 pub struct Cli {
 
     #[clap(value_parser)]
-    rom_path: String,
+    rom_path: Option<String>,
 
     #[clap(default_value_t = String::from("off"), short, long, value_parser)]
     log_level: String,
@@ -21,7 +21,7 @@ pub struct Cli {
 }
 
 pub struct Config {
-    pub rom_path: String,
+    pub rom_path: Option<String>,
     pub log_level: log::LevelFilter,
     pub step_delay: u64,
 

@@ -6,7 +6,8 @@ use sdl2::{
     Sdl,
 };
 
-use crate::emu::keypad::Keypad;
+use crate::emu::cpu::CPU;
+use crate::drivers::file::FileDriver;
 
 pub struct InputDriver {
     events: EventPump,
@@ -21,11 +22,18 @@ impl InputDriver {
 
     /// Polls the sdl eventpump for events, 
     /// then sets the passed keypad struct to the proper state.
-    pub fn poll(&mut self, keypad: &mut Keypad) -> Result<(), Box<dyn Error>> {
-
+    pub fn poll(&mut self, cpu: &mut CPU) -> Result<(), Box<dyn Error>> {
         for event in self.events.poll_iter() {
-            if let Event::Quit{..} = event { 
-                return Err("User terminated SDL context".into()); 
+            match event {
+                Event::Quit{..} => {
+                    return Err("User terminated SDL context".into()); 
+                },
+                Event::DropFile {filename, .. } => {
+                    let rom = FileDriver::from_string(&filename)?;
+                    cpu.reset();
+                    cpu.load(&rom.data);
+                },
+                _ => {},
             }
         }
 
@@ -36,14 +44,33 @@ impl InputDriver {
             .filter_map(Keycode::from_scancode);
         
         // Set keypad to true for only pressed keys
-        keypad.reset();
+        cpu.kp.reset();
         for key in pressed_keys {
             if let Some(idx) = keycode_to_idx(key) {
-                keypad.set(idx, true);
+                cpu.kp.set(idx, true);
             }
         }
 
         Ok(())
+    }
+
+    /// Polls the sdl eventpump for DropFile events
+    /// then returns the dropped file's path
+    pub fn poll_filedrop(&mut self) -> Result<String, Box<dyn Error>> {
+
+        loop {
+            for event in self.events.poll_iter() {
+                match event {
+                    Event::Quit{..} => { 
+                        return Err("User terminated SDL context".into()); 
+                    },
+                    Event::DropFile{filename, ..} => {
+                        return Ok(filename);
+                    },
+                    _ => {},
+                }
+            }
+        }
     }
 }
 
