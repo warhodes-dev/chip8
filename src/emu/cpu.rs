@@ -11,6 +11,7 @@ use crate::emu::{
     font::FONT,
 };
 
+#[derive(Debug)]
 pub struct CPU {
     pub v: [u8; 16],      // Registers
     pub mem: [u8; 4096],  // Memory
@@ -100,6 +101,7 @@ impl CPU {
 
     /// Fetches opcode, decodes and executes instruction
     pub fn step(&mut self) {
+        // Check if we need to block for keypad input first
         if self.kp.block {
             for (key_idx, &key_state) in self.kp.state.iter().enumerate() {
                 if key_state {
@@ -340,7 +342,6 @@ impl CPU {
     ///     Display n-byte sprite starting at register I at (VX, VY), then
     ///     set VF = collision
     fn op_dxyn(&mut self, x: usize, y: usize, n: usize) {
-        // reset collision register
         self.v[0xf] = 0;
         for byte_idx in 0..n as u8 {
 

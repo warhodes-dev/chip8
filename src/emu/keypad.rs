@@ -1,4 +1,5 @@
 /// The internal emulator keypad state.
+#[derive(Debug)]
 pub struct Keypad {
     pub state: [bool; 16],
     pub block: bool,

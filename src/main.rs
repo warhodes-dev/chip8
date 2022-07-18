@@ -50,7 +50,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     cpu.load(&rom.data);
 
     while input_driver.poll(&mut cpu).is_ok() {
-
         let cycle_start_time = Instant::now();
 
         for _ in 0..10 {
@@ -63,6 +62,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             video_driver.draw_screen(&cpu.fb.data)?;
             cpu.fb.update= false;
         }
+        
 
         if cpu.sound_state() {
             audio_driver.on();

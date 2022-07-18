@@ -6,6 +6,7 @@ pub type FrameBuffer = [bool; FB_SIZE.y * FB_SIZE.x];
 
 
 /// The internal emulator framebuffer.
+#[derive(Debug)]
 pub struct Frame {
     pub data: FrameBuffer,
     pub update: bool,
