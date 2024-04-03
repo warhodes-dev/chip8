@@ -94,7 +94,7 @@ impl CPU {
          *      self.mem[0x1FF] = 4;                              *
          *      self.mem[0x1FE] = 1;                              *
          *                                                        *
-         * === DEBUGGING PURPOSES ONLY * REMEMBER TO REMOVE ===== */
+         * ==== DEBUGGING PURPOSES ONLY * REMEMBER TO REMOVE ==== */
 
         //self.mem[0x1ff] = 3;
     }
